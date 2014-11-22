@@ -1,8 +1,9 @@
-#include "matrix.h"
 #include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
+#include <cstdio>
+#include "matrix.h"
 
 using namespace std;
 
@@ -25,8 +26,8 @@ double * fom(double** A, double* b, double* x0, int n, int m) {
   r0 = mult_matrix_to_vector(A, x0, n);
   r0 = mult_vector_to_scalar_inplace(r0, -1.0, n);
   r0 = add_vector_to_vector_inplace(r0, b, n);
-  if (fabs(vector_norm_2(r0, n)) < 1e-9) goto out;
   betha = vector_norm_2(r0, n);
+  if (fabs(betha) < 1e-9) goto out;
   v[0] = mult_vector_to_scalar(r0, 1.0/betha, n);
   for (int j = 0; j < m; j++) {
     w[j] = mult_matrix_to_vector(A, v[j], n);
@@ -48,25 +49,12 @@ double * fom(double** A, double* b, double* x0, int n, int m) {
   }
   f = new double[dim]();
   f[0] = betha;
-  for (int i = 0; i < dim; i++) {
-    for (int j = 0; j < dim; j++) {
-      cerr << H[i][j] << " ";
-    }
-    cerr << f[i] << endl;
-  }
   for (int i = 1; i < dim; i++) {
     for (int j = i; j < dim; j++) {
       H[i][j] -= H[i-1][j]*H[i][i-1]/H[i-1][i-1];
     }
     f[i] -= f[i-1]*H[i][i-1]/H[i-1][i-1];
     H[i][i-1] = 0.0;
-  }
-  cerr << endl;
-  for (int i = 0; i < dim; i++) {
-    for (int j = 0; j < dim; j++) {
-      cerr << H[i][j] << " ";
-    }
-    cerr << f[i] << endl;
   }
   y = new double[dim];
   for (int i = dim-1; i >= 0; i--) {
@@ -75,10 +63,6 @@ double * fom(double** A, double* b, double* x0, int n, int m) {
       y[i] -= y[j]*H[i][j]/H[i][i];
     }
   }
-  for (int i = 0; i < dim; i++) {
-    cerr << y[i] << " ";
-  }
-  cerr << endl;
   for (int i = 0; i < dim; i++) {
     double* tmp = mult_vector_to_scalar(v[i], y[i], n);
     xm = add_vector_to_vector_inplace(xm, tmp, n);
@@ -118,37 +102,55 @@ int main(void) {
   int n;
   double** A;
   double* b;
-  double* x0;
+  double* xm;
   int cnt = 0;
-  cin >> n;
-  A = new double*[n];
-  for (int i = 0; i < n; i++) {
-    A[i] = new double[n];
-  }
+  freopen("input.txt", "rt", stdin);
+  freopen("output.txt", "wt", stdout);
+  //cin >> n;
+  //A = new double*[n];
+  //for (int i = 0; i < n; i++) {
+    //A[i] = new double[n];
+  //}
+  //b = new double[n];
+  //for (int i = 0; i < n; i++) {
+    //for (int j = 0; j < n; j++) {
+      //cin >> A[i][j];
+    //}
+  //}
+  //for (int i = 0; i < n; i++) {
+    //cin >> b[i];
+  //}
+  A = read_MatrixMarket("cage10.mtx", n);
   b = new double[n];
   for (int i = 0; i < n; i++) {
-    for (int j = 0; j < n; j++) {
-      cin >> A[i][j];
-    }
+    b[i] = (1e-4*rand())/RAND_MAX;
   }
-  for (int i = 0; i < n; i++) {
-    cin >> b[i];
-  }
-  x0 = new double[n]();
-  while (diff(A, b, x0, n) > 1e-6) {
+  xm = new double[n]();
+  while (diff(A, b, xm, n) > 1e-6) {
+    if (cnt >= 300) break;
     cnt++;
-    x0 = fom(A, b, x0, n, n);
+    double* x = fom(A, b, xm, n, 10);
+    for (int i = 0; i < n; i++) {
+      xm[i] = x[i];
+    }
+    cerr << "Answer: ";
+    for (int i = 0; i < n; i++) {
+      cerr << xm[i] << " ";
+    }
+    cerr << endl;
+    cerr << "diff = " << diff(A, b, xm, n) << endl;
+    delete[] x;
   }
   cerr << "Number of iterations: " << cnt << endl;
   for (int i = 0; i < n; i++) {
-    cout << fixed << setprecision(5) << x0[i] << endl;
+    cout << fixed << setprecision(5) << xm[i] << endl;
   }
   for (int i = 0; i < n; i++) {
     delete[] A[i];
   }
   delete[] A;
   delete[] b;
-  delete[] x0;
+  delete[] xm;
   return 0;
 }
 
