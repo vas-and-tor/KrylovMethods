@@ -72,7 +72,7 @@ double * fom(double** A, double* b, double* x0, int n, int m) {
   for (int i = dim-1; i >= 0; i--) {
     y[i] = f[i]/H[i][i];
     for (int j = i+1; j < dim; j++) {
-      y[i] -= y[j]*H[i][j];
+      y[i] -= y[j]*H[i][j]/H[i][i];
     }
   }
   for (int i = 0; i < dim; i++) {
@@ -137,8 +137,7 @@ int main(void) {
   x0 = new double[n]();
   while (diff(A, b, x0, n) > 1e-6) {
     cnt++;
-    x0 = fom(A, b, x0, n, (int)ceil(sqrt(n)));
-    //break;
+    x0 = fom(A, b, x0, n, n);
   }
   cerr << "Number of iterations: " << cnt << endl;
   for (int i = 0; i < n; i++) {
