@@ -1,4 +1,6 @@
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 
 double mult_vector_to_vector(double* v1, double* v2, int n) {
   double res = 0.0;
@@ -63,4 +65,36 @@ double* add_vector_to_vector_inplace(double* v1, double* v2, int n) {
     v1[i] = v1[i] + v2[i];
   }
   return v1;
+}
+
+double** read_MatrixMarket(const char* filename, int & n) {
+  double** A;
+  FILE* f = fopen(filename, "rt");
+  ssize_t read;
+  size_t len;
+  char* line = NULL;
+  n = -1;
+  if (f == NULL) {
+    fprintf(stderr, "File '%s' not found.", filename);
+    exit(1);
+  }
+  while ((read = getline(&line, &len, f)) != -1) {
+    if (line[0] != '%') {
+      if (n != -1) {
+        int i,j;
+        double x;
+        sscanf(line, "%d %d %lf", &i, &j, &x);
+        A[i-1][j-1] = x;
+      } else {
+        int nn, mm, ll;
+        sscanf(line, "%d %d %d", &nn, &mm, &ll);
+        n = (nn >= mm ? nn : mm);
+        A = new double*[n];
+        for (int i = 0; i < n; i++) {
+          A[i] = new double[n];
+        }
+      }
+    }
+  }
+  return A;
 }
