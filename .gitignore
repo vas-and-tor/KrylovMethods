@@ -10,3 +10,4 @@ fom
 gmres
 bcg
 bcgstab
+fom_prec
