@@ -8,3 +8,4 @@ Session.vim
 *.out
 fom
 gmres
+bcg
