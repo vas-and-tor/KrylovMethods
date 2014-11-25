@@ -3,59 +3,66 @@
 #include <cstdlib>
 #include "matrix.h"
 #include <cstdio>
+#include <cmath>
 
 using namespace std;
 
 double * bcgstab(double** A, double* b, double* x0, int n, int & cnt) {
-  double* r1[2] = { NULL, new double[n] };
-  double* r2 = new double[n];
-  double* p = new double[n];
+  double r1[n];
+  double r2[n];
+  double* tmp = mult_matrix_to_vector(A, x0, n);
+  double rho[2];
+  double w = 0.0;
+  double alpha = 0;
+  double v[n] = {};
+  double p1[n] = {};
   double* x = new double[n];
-  r1[0] = mult_matrix_to_vector(A, x0, n);
   for (int i = 0; i < n; i++) {
-    p[i] = r2[i] = r1[0][i] = b[i] - r1[0][i];
+    r1[i] = r2[i] = b[i] - tmp[i];
     x[i] = x0[i];
   }
-  if (vector_norm_2(r1[0], n) < 1e-9) {
-    goto out;
-  }
+  cnt = 0;
   for (int j = 0; j < 300; j++) {
-    double* tmp1 = mult_matrix_to_vector(A , p, n);
-    double* tmp2;
-    double alpha = mult_vector_to_vector(r1[j%2], r2, n)/mult_vector_to_vector(tmp1, r2, n);
+    cnt++;
     double betha;
-    double s[n];
-    double w;
+    double s1[n];
+    double t[n];
+    rho[j%2] = mult_vector_to_vector(r1, r2, n);
+    if (fabs(rho[j%2]) < 1e-15) goto out;
+    betha = (j != 0 ? ((rho[j%2]/rho[1-j%2]) * (alpha/w)) : 0);
     for (int i = 0; i < n; i++) {
-      s[i] = r1[j%2][i] - alpha*tmp1[i];
+      p1[i] = r1[i] + betha*(p1[i] - w*v[i]);
     }
-    tmp2 = mult_matrix_to_vector(A, s, n);
-    w = mult_vector_to_vector(tmp1, s, n)/mult_vector_to_vector(tmp1, tmp1, n);
+    mult_matrix_to_vector_inplace(A, p1, n, v);
+    alpha = rho[j%2]/mult_vector_to_vector(v, r2, n);
     for (int i = 0; i < n; i++) {
-      x[i] += alpha*p[i] + w*s[i];
-      r1[1-j%2][i] = s[i] - w*tmp2[i];
+      s1[i] = r1[i] - alpha*v[i];
     }
-    betha = mult_vector_to_vector(r1[1-j%2], r2, n)/mult_vector_to_vector(r1[j%2], r2, n) * alpha/w;
-    for (int i = 0; i < n; i++) {
-      p[i] = r1[1-j%2][i] + betha*(p[i] - w*tmp1[i]);
-    }
-    cerr << j+1 << " Answer: ";
-    for (int i = 0; i < n; i++) {
-      cerr << x[i] << " ";
-    }
-    cerr << endl;
-    delete[] tmp1;
-    delete[] tmp2;
-    if (vector_norm_2(r1[1-j%2], n) < 1e-6) {
-      cnt = j+1;
+    if (vector_norm_2(s1, n) < 1e-6) {
+      for (int i = 0; i < n; i++) {
+        x[i] += alpha*p1[i];
+      }
       goto out;
     }
+    mult_matrix_to_vector_inplace(A, s1, n, t);
+    w = mult_vector_to_vector(s1, t, n)/mult_vector_to_vector(t, t, n);
+    for (int i = 0; i < n; i++) {
+      x[i] += alpha*p1[i] + w*s1[i];
+      r1[i] = s1[i] - w*t[i];
+    }
+    //cerr << j+1 << " Answer: ";
+    //for (int i = 0; i < n; i++) {
+      //cerr << x[i] << " ";
+    //}
+    //cerr << endl;
+    //cerr << "diff = " << diff(A, b, x, n) << endl;
+    if (vector_norm_2(r1, n) < 1e-6) goto out;
   }
+
 out:
-  delete[] r1[0];
-  delete[] r1[1];
-  delete[] r2;
-  delete[] p;
+
+  delete[] tmp;
+
   return x;
 }
 
@@ -93,10 +100,10 @@ int main(void) {
     //cin >> b[i];
   //}
   freopen("output.txt", "wt", stdout);
-  A = read_MatrixMarket("tests/sherman2.mtx", n);
+  A = read_MatrixMarket("tests/orsirr_1.mtx", n);
   b = new double[n];
   for (int i = 0; i < n; i++) {
-    b[i] = (1e-9*rand())/RAND_MAX;
+    b[i] = (1e-4*rand())/RAND_MAX;
   }
   x0 = new double[n];
   for (int i = 0; i < n; i++) {
