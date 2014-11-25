@@ -22,6 +22,13 @@ double* mult_matrix_to_vector(double** A, double* v, int n) {
   return w;
 }
 
+double* mult_matrix_to_vector_inplace(double** A, double* v, int n, double* w) {
+  for (int i = 0; i < n; i++) {
+    w[i] = mult_vector_to_vector(A[i], v, n);
+  }
+  return w;
+}
+
 double* mult_vector_to_scalar(double* v, double c, int n) {
   double* w = new double[n];
   for (int i = 0; i < n; i++) {
@@ -99,19 +106,21 @@ double** read_MatrixMarket(const char* filename, int & n) {
   return A;
 }
 
-double* LUSolve(double** A, double* b, int n) {
+double* LUSolve(double** A, double* b, int n, bool transpose=false) {
   double* tmp = new double[n];
   double* x = new double[n];
   for (int i = 0; i < n; i++) {
-    tmp[i] = b[i];
+    double div = (!transpose ? 1 : A[i][i]);
+    tmp[i] = b[i]/div;
     for (int j = 0; j < i; j++) {
-      tmp[i] -= A[i][j]*tmp[j];
+      tmp[i] -= A[i][j]*tmp[j]/div;
     }
   }
   for (int i = n-1; i >= 0; i--) {
-    x[i] = tmp[i]/A[i][i];
+    double div = (!transpose ? A[i][i] : 1);
+    x[i] = tmp[i]/div;
     for (int j = i+1; j < n; j++) {
-      x[i] -= A[i][j]*x[j]/A[i][i];
+      x[i] -= A[i][j]*x[j]/div;
     }
   }
   delete[] tmp;
